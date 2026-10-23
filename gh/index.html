@@ -7,9 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="小说笔记">
-
-
-
+="apple-180.png">
+="icon-192.png">
 <title>小说笔记工作台 · GitHub 版</title>
 <style>
 :root{
@@ -404,15 +403,24 @@ var Store = (function () {
       })
       .then(function (u) { return { login: u.login }; });
   }
+  function repoExists(token, owner, repo) {
+    return fetch(API + "/repos/" + owner + "/" + repo, {
+      headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json" }
+    }).then(function (r) { return r.ok; }).catch(function () { return false; });
+  }
   function createDataRepo(token, login, name) {
     return fetch(API + "/user/repos", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", "Accept": "application/vnd.github+json" },
       body: JSON.stringify({ name: name, private: true, description: "小说笔记工作台数据（自动同步）", auto_init: true })
     }).then(function (r) {
-      if (r.status === 422) throw new Error("仓库已存在或名字不合法（422）");
-      if (!r.ok) return r.json().then(function (j) { throw new Error("创建失败 " + r.status + ": " + (j.message || "")); });
-      return r.json();
+      if (r.ok) return r.json();
+      // 403=Token 无创建权限 / 422=已存在：检查仓库是否已存在，存在就继续用
+      return repoExists(token, login, name).then(function (ok) {
+        if (ok) return null;
+        throw new Error("无法自动创建仓库（" + r.status + "）。请先在 GitHub 网页上手动创建私有仓库：" +
+          login + "/" + name + "（New repository → 勾选 Private），然后回来重试。");
+      });
     });
   }
   function setPass(pass) {
