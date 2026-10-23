@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6c5ce7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="小说笔记">
+<title>小说笔记工作台 · 单机版</title>
+<style>
+:root{
+  --bg:#f5f5fa; --card:#fff; --line:#e6e4f0; --ink:#241f33; --ink2:#8a879e;
+  --acc:#6c5ce7; --acc2:#5546d6; --danger:#e04a4f;
+  --c-person:#e17055; --c-clue:#0984e3; --c-time:#00b894; --c-place:#e84393;
+  --c-quote:#fdcb6e; --c-q:#a29bfe; --c-other:#b2bec3;
+  --radius:14px; --shadow:0 4px 18px rgba(40,30,80,.08);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+button{font-family:inherit;cursor:pointer}
+.hidden{display:none!important}
+
+/* ===== 顶栏 ===== */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;
+  padding:10px 12px calc(10px);background:rgba(245,245,250,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.mark{width:38px;height:38px;border-radius:11px;flex:none;background:linear-gradient(135deg,#6c5ce7,#a29bfe);
+  color:#fff;font-size:18px;font-weight:700;display:grid;place-items:center}
+.brand-wrap{min-width:0}
+.brand-t{font-size:15.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-s{font-size:11.5px;color:var(--ink2)}
+.top-ops{display:flex;gap:2px}
+.icon-btn{border:0;background:transparent;color:var(--ink2);width:38px;height:38px;border-radius:10px;
+  display:grid;place-items:center}
+.icon-btn svg{width:21px;height:21px}
+.icon-btn:active{background:#eceafd;color:var(--acc)}
+
+/* ===== 搜索 ===== */
+.searchwrap{padding:10px 12px 0}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:0 12px;box-shadow:var(--shadow)}
+.search-box svg{width:18px;height:18px;color:var(--ink2);flex:none}
+.search-box input{flex:1;border:0;outline:0;background:none;padding:11px 0;font-size:14.5px}
+
+/* ===== 分类条 ===== */
+.cats{display:flex;gap:7px;overflow-x:auto;padding:12px 12px 2px;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cat-chip{flex:none;border:1.5px solid var(--line);background:var(--card);color:var(--ink2);
+  border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600}
+.cat-chip.on{color:#fff;border-color:transparent}
+.cat-chip .n{opacity:.7;font-weight:400;margin-left:3px;font-size:11.5px}
+
+/* ===== 卡片墙 ===== */
+.wall{padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+@media(max-width:560px){.wall{grid-template-columns:1fr 1fr;gap:9px;padding:9px}}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  border-top:4px solid var(--c-other);padding:11px 12px 12px;display:flex;flex-direction:column;gap:7px;
+  position:relative;transition:transform .12s}
+.card:active{transform:scale(.985)}
+.card .c-head{display:flex;align-items:flex-start;gap:6px}
+.card .c-title{font-size:14.5px;font-weight:700;flex:1;min-width:0;word-break:break-word}
+.card .c-cat{font-size:10.5px;font-weight:700;color:#fff;border-radius:6px;padding:2px 7px;flex:none;margin-top:1px}
+.card .c-body{font-size:12.8px;color:#55516b;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;
+  white-space:pre-wrap;word-break:break-word}
+.card .c-imgs{display:flex;gap:5px;overflow:hidden}
+.card .c-imgs img{width:52px;height:52px;object-fit:cover;border-radius:8px;flex:none}
+.card .c-foot{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink2);margin-top:auto;padding-top:4px}
+.card .c-links{font-size:11px;color:var(--acc);font-weight:600}
+.card .c-pin{position:absolute;top:-9px;right:8px;font-size:15px}
+.wall-empty{grid-column:1/-1;text-align:center;color:var(--ink2);padding:56px 20px;font-size:13.5px;line-height:2}
+.wall-empty b{display:block;font-size:15px;color:var(--ink)}
+
+/* ===== 人物关系视图 ===== */
+.graph{padding:16px 12px;overflow:auto}
+.g-svg{width:100%;min-height:60vh}
+.g-tip{font-size:12px;color:var(--ink2);margin:0 4px 10px}
+
+/* ===== 时间线看板（手动拖拽） ===== */
+.timeline{padding:12px 0 20px}
+.tl-tip{font-size:12px;color:var(--ink2);margin:0 14px 10px;line-height:1.7}
+.kb-scroll{overflow-x:auto;padding:4px 14px 16px;-webkit-overflow-scrolling:touch}
+.kb-track{display:flex;align-items:stretch;width:max-content;min-height:56vh;gap:12px}
+.kb-lane{width:262px;flex:none;display:flex;flex-direction:column;background:#eeeafb;
+  border:1px solid #e2def5;border-radius:16px;padding:10px}
+.kb-lane[data-lane="__pool__"]{background:#f2f1f7;border-style:dashed;border-color:#d8d4e8}
+.kb-lane-h{display:flex;align-items:center;gap:6px;margin-bottom:9px;min-height:30px}
+.kb-title{font-size:13.5px;font-weight:800;color:var(--ink);cursor:text;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb-title .n{color:var(--ink2);font-weight:400;font-size:11.5px}
+.kb-lane-ops{margin-left:auto;display:flex;gap:2px}
+.kb-lane-ops button{border:0;background:#e3dff5;color:#7c72b8;border-radius:7px;width:26px;height:26px;
+  font-size:13px;font-weight:700;display:grid;place-items:center;padding:0}
+.kb-lane-ops button:active{background:#d3cdf0;color:var(--acc)}
+.kb-drop{flex:1;display:flex;flex-direction:column;gap:9px;min-height:80px;border-radius:12px;
+  border:2px dashed transparent;padding:2px;transition:border-color .15s,background .15s}
+.kb-drop.over{border-color:var(--acc);background:rgba(108,92,231,.07)}
+.kb-card{cursor:grab}
+.kb-card.dragging{opacity:.45;transform:scale(.97)}
+.kb-card .c-body{-webkit-line-clamp:3!important}
+.kb-empty{border:2px dashed #d5d0ea;border-radius:12px;padding:22px 10px;text-align:center;
+  color:#b0aacb;font-size:12.5px}
+.kb-addlane{width:64px;flex:none;border:2px dashed #cfcae6;border-radius:16px;color:#8f88b8;
+  display:grid;place-items:center;text-align:center;font-size:13px;font-weight:700;line-height:1.6;cursor:pointer}
+.kb-addlane:active{background:#eceaF6;color:var(--acc)}
+@media(max-width:560px){.kb-lane{width:230px}}
+
+/* ===== FAB ===== */
+.fab{position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:20;
+  width:56px;height:56px;border-radius:18px;border:0;color:#fff;
+  background:linear-gradient(135deg,var(--acc),#a29bfe);box-shadow:0 8px 22px rgba(108,92,231,.42);
+  display:grid;place-items:center}
+.fab svg{width:26px;height:26px}
+.fab:active{transform:scale(.94)}
+
+/* ===== 抽屉（书本）===== */
+.drawer-backdrop,.sheet-backdrop{position:fixed;inset:0;z-index:30;background:rgba(20,15,40,.42)}
+.drawer{position:fixed;z-index:31;top:0;left:0;bottom:0;width:min(320px,84vw);background:var(--bg);
+  display:flex;flex-direction:column;box-shadow:8px 0 30px rgba(0,0,0,.15)}
+.drawer-h{display:flex;align-items:center;justify-content:space-between;padding:16px 14px 10px}
+.drawer-h b{font-size:15.5px}
+.mini-btn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 11px;font-size:12.5px;font-weight:600;color:var(--ink)}
+.mini-btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+.drawer-list{flex:1;overflow-y:auto;padding:4px 10px 20px}
+.book-item{background:var(--card);border-radius:12px;padding:12px 13px;margin-bottom:8px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:10px;position:relative}
+.book-item.on{outline:2px solid var(--acc)}
+.book-item .b-em{font-size:20px}
+.book-item .b-n{font-weight:700;font-size:14px}
+.book-item .b-s{font-size:11.5px;color:var(--ink2)}
+.book-item .b-del{border:0;background:none;color:#c9c6d8;font-size:16px;padding:6px}
+
+/* ===== 弹层 ===== */
+.sheet{position:fixed;z-index:31;left:50%;bottom:0;transform:translateX(-50%);
+  width:min(640px,100vw);max-height:92vh;overflow-y:auto;background:var(--bg);
+  border-radius:22px 22px 0 0;padding:10px 14px calc(22px + env(safe-area-inset-bottom));
+  box-shadow:0 -10px 40px rgba(0,0,0,.2)}
+.sheet .grab{width:42px;height:4px;border-radius:2px;background:#d8d5e8;margin:4px auto 12px}
+.sheet h3{margin:0 0 12px;font-size:16px}
+.f-row{margin-bottom:11px}
+.f-row label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:5px}
+.f-row input[type=text],.f-row textarea,.f-row select{width:100%;border:1px solid var(--line);border-radius:11px;
+  background:var(--card);padding:11px 12px;font-size:14px;font-family:inherit;outline:0}
+.f-row textarea{min-height:150px;resize:vertical;line-height:1.65}
+.f-row textarea:focus,.f-row input:focus{border-color:var(--acc)}
+.f-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cat-picks{display:flex;gap:7px;flex-wrap:wrap}
+.cat-pick{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink2)}
+.cat-pick.on{color:#fff;border-color:transparent}
+.link-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.link-chip{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--line);
+  border-radius:999px;padding:4px 10px;font-size:12px}
+.link-chip b{font-weight:700}
+.link-chip .x{color:#c9c6d8;font-weight:700}
+.img-pre{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.img-pre .im{position:relative}
+.img-pre img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.img-pre .del{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;
+  background:#333;color:#fff;font-size:11px;display:grid;place-items:center}
+.paste-hint{font-size:11.5px;color:var(--ink2);margin-top:6px}
+.sheet-ops{display:flex;gap:9px;margin-top:14px}
+.sheet-ops button{flex:1;border:0;border-radius:12px;padding:13px;font-size:14.5px;font-weight:700}
+.btn-save{background:var(--acc);color:#fff}
+.btn-del{background:#fdeaea;color:var(--danger);flex:0 0 52px!important}
+.btn-ghost{background:#eceaF6;color:var(--ink)}
+.img-big{width:100%;border-radius:12px;margin-top:6px}
+
+/* 关系编辑选择列表 */
+.pick-list{max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:11px;background:var(--card)}
+.pick-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px}
+.pick-item:last-child{border-bottom:0}
+.pick-item .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.pick-item .nm{flex:1;font-weight:600}
+.pick-item button{border:0;background:#eceaF6;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--acc)}
+.pick-item button.rm{color:var(--danger)}
+
+/* 详情页 */
+.d-cat{display:inline-block;font-size:11px;font-weight:700;color:#fff;border-radius:6px;padding:2px 8px;margin-bottom:8px}
+.d-body{white-space:pre-wrap;font-size:14px;line-height:1.75;color:#3c3854;word-break:break-word}
+.d-sec{font-size:12px;font-weight:700;color:var(--ink2);margin:16px 0 7px;display:flex;align-items:center;gap:6px}
+.d-links{display:flex;flex-direction:column;gap:6px}
+.d-link{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:11px;padding:9px 12px;font-size:13px}
+.d-link .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.d-link .go{margin-left:auto;color:var(--acc);font-weight:700;font-size:12px;border:0;background:none}
+
+/* 菜单弹层 */
+.menu-list{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.menu-item{display:flex;align-items:center;gap:10px;border:0;background:none;padding:13px 8px;
+  font-size:14px;font-weight:600;color:var(--ink);border-radius:10px;text-align:left}
+.menu-item:active{background:#eceaF6}
+.menu-item .mi-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;background:#eceaF6}
+.menu-item small{display:block;font-weight:400;color:var(--ink2);font-size:11.5px}
+.token-box{background:var(--card);border:1px dashed var(--acc);border-radius:11px;padding:12px;text-align:center;
+  font-size:13px;margin:8px 0 12px}
+.token-box b{font-size:22px;letter-spacing:6px;color:var(--acc);display:block;margin-top:4px}
+
+/* toast */
+.toast-wrap{position:fixed;left:0;right:0;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;
+  display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.toast{background:#2c2840;color:#fff;border-radius:999px;padding:10px 18px;font-size:13px;
+  box-shadow:0 6px 18px rgba(0,0,0,.25);animation:tin .2s}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+
+/* 离线提示条 & 只读态 */
+.offline-bar{position:sticky;top:58px;z-index:19;background:#fff3cd;color:#8a6d00;
+  font-size:12.5px;font-weight:700;text-align:center;padding:7px 12px;border-bottom:1px solid #f1e3a0}
+body.is-offline .fab{filter:grayscale(1);opacity:.55}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="icon-btn" id="btnBooks" title="切换书本">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+  </button>
+  <div class="brand">
+    <div class="mark" id="brandMark">笔</div>
+    <div class="brand-wrap">
+      <div class="brand-t" id="bookTitle">未选择书本</div>
+      <div class="brand-s" id="bookSub">0 张卡片</div>
+    </div>
+  </div>
+  <div class="top-ops">
+    <button class="icon-btn" id="btnView" title="视图：卡片墙 / 人物关系">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.3 10.8 16.7 6.2M7.3 13.2l9.4 4.6"/></svg>
+    </button>
+    <button class="icon-btn" id="btnSearch" title="搜索">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+    <button class="icon-btn" id="btnMenu" title="设置与备份">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="searchwrap hidden" id="searchWrap">
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="searchInput" placeholder="搜索卡片标题 / 内容 / 标签">
+  </div>
+</div>
+
+<nav class="cats" id="catBar"></nav>
+<main id="main">
+  <div id="wall" class="wall"></div>
+  <div id="timeline" class="timeline hidden"></div>
+  <div id="graph" class="graph hidden"></div>
+</main>
+
+<button class="fab" id="fab" aria-label="新建卡片">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
+<aside class="drawer hidden" id="bookDrawer">
+  <div class="drawer-h">
+    <b>我的书架</b>
+    <button class="mini-btn primary" id="btnNewBook">＋ 新建书本</button>
+  </div>
+  <div class="drawer-list" id="bookList"></div>
+</aside>
+
+<div class="sheet-backdrop hidden" id="sheetBackdrop"></div>
+<div class="sheet hidden" id="sheet"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+<input type="file" id="filePick" accept="image/*" multiple class="hidden">
+
+<script>
+/* 小说笔记工作台 · 前端 */
+"use strict";
+
+var $ = function (id) { return document.getElementById(id); };
+var state = null;          // {projects, cards, settings}
+var curBookId = "";        // 当前书本
+var curCat = "all";        // 当前分类筛选
+var view = "wall";         // wall | timeline | graph
+var searchText = "";
+var editingCard = null;    // 编辑中的卡片（null=新建）
+var editorPresetLane = null; // 从时间线泳道发起新建时，保存后自动放入该泳道
+var draftImgs = [];        // 编辑器里待保存的图片
+var draftLinks = [];       // 编辑器里待保存的关联
+var pickedCat = "other";
+
+/* ============ 常量 ============ */
+var CAT_META = {
+  person: { name: "人物",   color: "#e17055", em: "👤" },
+  clue:   { name: "线索",   color: "#0984e3", em: "🔍" },
+  time:   { name: "时间线", color: "#00b894", em: "⏱️" },
+  place:  { name: "地点",   color: "#e84393", em: "📍" },
+  quote:  { name: "摘抄",   color: "#fdcb6e", em: "✏️" },
+  q:      { name: "疑问",   color: "#a29bfe", em: "❓" },
+  other:  { name: "其他",   color: "#b2bec3", em: "📎" }
+};
+var CAT_ORDER = ["person", "clue", "time", "place", "quote", "q", "other"];
+var DEFAULT_SETTINGS = { categories: JSON.parse(JSON.stringify(CAT_ORDER)) };
+
+/* ============ 工具 ============ */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function toast(msg, ms) {
+  var el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg;
+  $("toastWrap").appendChild(el);
+  setTimeout(function () { el.remove(); }, ms || 1800);
+}
+function catMeta(id) { return CAT_META[id] || CAT_META.other; }
+function curBook() {
+  for (var i = 0; i < state.projects.length; i++)
+    if (state.projects[i].id === curBookId) return state.projects[i];
+  return null;
+}
+function cardsOfBook(bid) {
+  return state.cards.filter(function (c) { return c.bookId === bid; });
+}
+function cardById(id) {
+  for (var i = 0; i < state.cards.length; i++) if (state.cards[i].id === id) return state.cards[i];
+  return null;
+}
+
+/* ============ 数据同步（单机版：数据只存本设备浏览器） ============ */
+var LS_KEY = "nn_state_cache";
+
+function applyState(d) {
+  state = d;
+  state.projects = state.projects || [];
+  state.cards = state.cards || [];
+  state.settings = Object.assign({}, DEFAULT_SETTINGS, state.settings || {});
+  if (!state.projects.length) {
+    state.projects.push({ id: uid(), name: "我的第一本书", em: "📕", created: Date.now() });
+  }
+  if (!curBookId || !curBook()) curBookId = state.projects[0].id;
+  renderAll();
+}
+function loadState() {
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch (e) {}
+  applyState(cached || { projects: [], cards: [], settings: {} });
+}
+function saveState() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    toast("已保存 ✓");
+  } catch (e) {
+    toast("保存失败：浏览器存储已满，请删减图片或导出备份后清理");
+  }
+}
+
+/* ---------- 导出 / 导入合并 ---------- */
+function exportBackup() {
+  var payload = {
+    type: "novel-notes-local",
+    exported: new Date().toISOString(),
+    state: state
+  };
+  var blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "笔记数据-" + new Date().toISOString().slice(0, 10) + ".json";
+  a.click();
+  toast("数据包已导出（含图片）");
+}
+/* 合并：按卡片 id 去重，修改时间新者胜；书本/泳道/分类按 id 去重合并 */
+function mergeState(remote) {
+  if (!remote || !remote.cards) { toast("备份文件格式不对"); return; }
+  // 本地还是空的初始书本时，直接采用远端的书本列表（避免卡片挂不上当前书本）
+  var localEmpty = state.cards.length === 0 &&
+    state.projects.length === 1 && !(state.projects[0].lanes || []).length &&
+    state.projects[0].name === "我的第一本书" && remote.projects && remote.projects.length;
+  if (localEmpty) state.projects = JSON.parse(JSON.stringify(remote.projects));
+  var map = {};
+  state.cards.forEach(function (c) { map[c.id] = c; });
+  var added = 0, updated = 0;
+  remote.cards.forEach(function (c) {
+    if (!map[c.id]) { map[c.id] = c; added++; }
+    else if ((c.updated || 0) > (map[c.id].updated || 0)) {
+      var links = map[c.id].links;
+      map[c.id] = c;
+      map[c.id].links = links || c.links || [];
+      updated++;
+    }
+  });
+  state.cards = Object.keys(map).map(function (k) { return map[k]; });
+  (remote.projects || []).forEach(function (rb) {
+    var lb = state.projects.filter(function (x) { return x.id === rb.id; })[0];
+    if (!lb) { state.projects.push(rb); return; }
+    (rb.lanes || []).forEach(function (rl) {
+      lb.lanes = lb.lanes || [];
+      var ll = lb.lanes.filter(function (x) { return x.id === rl.id; })[0];
+      if (!ll) { lb.lanes.push(rl); return; }
+      (rl.cards || []).forEach(function (cid) {
+        if (ll.cards.indexOf(cid) < 0) ll.cards.push(cid);
+      });
+    });
+  });
+  if (remote.settings && remote.settings.categories) {
+    remote.settings.categories.forEach(function (c) {
+      if (state.settings.categories.indexOf(c) < 0) state.settings.categories.push(c);
+    });
+  }
+  // 当前书本没有任何卡片而其他书本有 → 自动切换到有卡片的书
+  if (!cardsOfBook(curBookId).length) {
+    var withCards = state.projects.filter(function (b) { return cardsOfBook(b.id).length; });
+    if (withCards.length) curBookId = withCards[0].id;
+  }
+  saveState(); renderAll();
+  toast("导入完成：新增 " + added + " 张，更新 " + updated + " 张");
+}
+function importBackup(file) {
+  var r = new FileReader();
+  r.onload = function () {
+    try { mergeState(JSON.parse(r.result).state); }
+    catch (e) { toast("文件无法识别：" + e.message); }
+  };
+  r.readAsText(file);
+}
+
+/* ============ 渲染 ============ */
+function renderAll() { renderHead(); renderCats(); renderView(); renderDrawer(); }
+
+function renderHead() {
+  var b = curBook();
+  $("bookTitle").textContent = b ? b.em + " " + b.name : "未选择书本";
+  var cards = cardsOfBook(curBookId);
+  var persons = cards.filter(function (c) { return c.cat === "person"; }).length;
+  var clues = cards.filter(function (c) { return c.cat === "clue"; }).length;
+  $("bookSub").textContent = cards.length + " 张卡片 · 人物 " + persons + " · 线索 " + clues;
+  $("brandMark").textContent = (b && b.name) ? b.name.trim().charAt(0) : "笔";
+}
+
+function renderCats() {
+  var bar = $("catBar");
+  var cards = cardsOfBook(curBookId);
+  var html = chipHtml("all", "全部", cards.length);
+  state.settings.categories.forEach(function (cid) {
+    var n = cards.filter(function (c) { return c.cat === cid; }).length;
+    html += chipHtml(cid, catMeta(cid).name, n);
+  });
+  if (curCat !== "all" && state.settings.categories.indexOf(curCat) < 0) curCat = "all";
+  bar.innerHTML = html;
+}
+function chipHtml(cid, name, n) {
+  var on = curCat === cid ? " on" : "";
+  var bg = cid === "all" ? "var(--acc)" : catMeta(cid).color;
+  return '<button class="cat-chip' + on + '" data-cat="' + cid + '"' +
+    (on ? ' style="background:' + bg + '"' : "") + ">" + name +
+    '<span class="n">' + n + "</span></button>";
+}
+
+function filteredCards() {
+  var list = cardsOfBook(curBookId);
+  if (curCat !== "all") list = list.filter(function (c) { return c.cat === curCat; });
+  if (searchText) {
+    var k = searchText.toLowerCase();
+    list = list.filter(function (c) {
+      return (c.title || "").toLowerCase().indexOf(k) >= 0 ||
+             (c.content || "").toLowerCase().indexOf(k) >= 0 ||
+             (c.tags || []).join(" ").toLowerCase().indexOf(k) >= 0;
+    });
+  }
+  list.sort(function (a, b) {
+    if (!!b.pinned !== !!a.pinned) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+    return (b.updated || 0) - (a.updated || 0);
+  });
+  return list;
+}
+
+function renderView() {
+  $("graph").classList.toggle("hidden", view !== "graph");
+  $("wall").classList.toggle("hidden", view !== "wall");
+  $("timeline").classList.toggle("hidden", view !== "timeline");
+  if (view === "wall") renderWall();
+  else if (view === "timeline") renderTimeline();
+  else renderGraph();
+}
+
+/* ---- 时间线看板（手动拖拽） ---- */
+function laneOf(cardId) {
+  var b = curBook();
+  if (!b || !b.lanes) return null;
+  for (var i = 0; i < b.lanes.length; i++)
+    if ((b.lanes[i].cards || []).indexOf(cardId) >= 0) return b.lanes[i];
+  return null;
+}
+function laneClean(lane) {
+  // 清理已不存在的卡片
+  lane.cards = (lane.cards || []).filter(function (id) { return cardById(id); });
+}
+function timelineData() {
+  var b = curBook();
+  b.lanes = b.lanes || [];
+  b.lanes.forEach(laneClean);
+  var placed = {};
+  b.lanes.forEach(function (l) { l.cards.forEach(function (id) { placed[id] = 1; }); });
+  var pool = cardsOfBook(curBookId).filter(function (c) { return !placed[c.id]; });
+  return { book: b, lanes: b.lanes, pool: pool };
+}
+function moveCardToLane(cardId, laneId, index) {
+  var d = timelineData();
+  var target = laneId === "__pool__" ? null : d.lanes.filter(function (l) { return l.id === laneId; })[0];
+  // 从原处移除
+  d.lanes.forEach(function (l) { l.cards = l.cards.filter(function (x) { return x !== cardId; }); });
+  var card = cardById(cardId);
+  if (card) card.updated = Date.now();
+  if (target) {
+    if (index == null || index < 0 || index > target.cards.length) index = target.cards.length;
+    target.cards.splice(index, 0, cardId);
+  }
+  saveState(); renderTimeline();
+}
+
+function renderTimeline() {
+  var el = $("timeline");
+  var d = timelineData();
+  var html = '<div class="tl-tip">⏱️ 时间线看板（手动整理）· 从左侧「待放置」拖卡片到泳道 · 泳道可 ✎ 重命名 / 🗑 删除 / ←→ 调序 · 手机端点卡片选「移动」</div>' +
+    '<div class="kb-scroll"><div class="kb-track" id="kbTrack">';
+  // 待放置池
+  html += laneHtml({ id: "__pool__", title: "📥 待放置", cards: d.pool.map(function (c) { return c.id; }), pool: true });
+  d.lanes.forEach(function (l) { html += laneHtml(l); });
+  html += '<div class="kb-addlane" id="kbAddLane"><div>＋<br>新建<br>泳道</div></div>' +
+    "</div></div>";
+  el.innerHTML = html;
+  bindTimelineEvents();
+}
+
+function laneHtml(lane) {
+  var html = '<div class="kb-lane" data-lane="' + lane.id + '">' +
+    '<div class="kb-lane-h">';
+  if (lane.pool) {
+    html += '<b class="kb-title">' + lane.title + ' <span class="n">' + lane.cards.length + "</span></b>";
+  } else {
+    html += '<b class="kb-title" data-rename="' + lane.id + '" title="点击重命名">' + esc(lane.title) +
+      ' <span class="n">' + lane.cards.length + "</span></b>" +
+      '<span class="kb-lane-ops">' +
+      '<button data-lmove="-1" title="左移">←</button>' +
+      '<button data-lmove="1" title="右移">→</button>' +
+      '<button data-ladd="' + lane.id + '" title="在此泳道新建卡片">＋</button>' +
+      '<button data-ldel="' + lane.id + '" title="删除泳道（卡片回到待放置）">🗑</button></span>';
+  }
+  html += "</div>" +
+    '<div class="kb-drop" data-drop="' + lane.id + '">';
+  lane.cards.forEach(function (id) {
+    var c = cardById(id); if (!c) return;
+    var m = catMeta(c.cat);
+    html += '<div class="card kb-card" draggable="true" data-id="' + c.id + '" data-lane="' + lane.id + '" style="border-top-color:' + m.color + '">' +
+      '<div class="c-head"><div class="c-title">' + esc(c.title || "（无标题）") + "</div>" +
+      '<span class="c-cat" style="background:' + m.color + '">' + m.name + "</span></div>" +
+      (c.content ? '<div class="c-body" style="-webkit-line-clamp:3">' + esc(c.content) + "</div>" : "") +
+      ((c.images || []).length ? '<div class="c-imgs">' + c.images.slice(0, 2).map(function (u) {
+        return '<img src="' + esc(u) + '" loading="lazy">';
+      }).join("") + "</div>" : "") +
+      "</div>";
+  });
+  if (!lane.cards.length)
+    html += '<div class="kb-empty">' + (lane.pool ? "新建的卡片先落在这里" : "拖卡片到这里") + "</div>";
+  html += "</div></div>";
+  return html;
+}
+
+function bindTimelineEvents() {
+  var el = $("timeline");
+  var dragId = null;
+  el.querySelectorAll(".kb-card").forEach(function (c) {
+    c.addEventListener("dragstart", function (e) {
+      dragId = c.getAttribute("data-id");
+      e.dataTransfer.setData("text/plain", dragId);
+      c.classList.add("dragging");
+    });
+    c.addEventListener("dragend", function () { c.classList.remove("dragging"); });
+    // 手机端：点按弹出操作
+    c.addEventListener("click", function () { cardActions(c.getAttribute("data-id")); });
+  });
+  el.querySelectorAll("[data-drop]").forEach(function (zone) {
+    zone.addEventListener("dragover", function (e) { e.preventDefault(); zone.classList.add("over"); });
+    zone.addEventListener("dragleave", function () { zone.classList.remove("over"); });
+    zone.addEventListener("drop", function (e) {
+      e.preventDefault(); zone.classList.remove("over");
+      var id = dragId || e.dataTransfer.getData("text/plain");
+      if (!id) return;
+      // 计算落点插入位置
+      var lanes = Array.prototype.slice.call(zone.querySelectorAll(".kb-card:not(.dragging)"));
+      var index = lanes.length;
+      for (var i = 0; i < lanes.length; i++) {
+        var r = lanes[i].getBoundingClientRect();
+        if (e.clientX < r.left + r.width / 2 && lanes[i].getBoundingClientRect().top <= e.clientY + 40) { index = i; break; }
+      }
+      moveCardToLane(id, zone.getAttribute("data-drop"), index);
+      dragId = null;
+    });
+  });
+  el.querySelectorAll("[data-rename]").forEach(function (t) {
+    t.addEventListener("click", function () {
+      var d = timelineData();
+      var lane = d.lanes.filter(function (l) { return l.id === t.getAttribute("data-rename"); })[0];
+      var v = prompt("泳道名称（如：第1章 · 案发 / 1990年冬）：", lane.title);
+      if (v && v.trim()) { lane.title = v.trim(); saveState(); renderTimeline(); }
+    });
+  });
+  el.querySelectorAll("[data-ldel]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (!confirm("删除该泳道？泳道里的卡片会回到「待放置」，不会丢。")) return;
+      var d = timelineData();
+      d.book.lanes = d.lanes.filter(function (l) { return l.id !== b.getAttribute("data-ldel"); });
+      saveState(); renderTimeline();
+    });
+  });
+  el.querySelectorAll("[data-lmove]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var dir = +b.getAttribute("data-lmove");
+      var laneEl = b.closest(".kb-lane");
+      var d = timelineData();
+      var i = d.lanes.indexOf(d.lanes.filter(function (l) { return l.id === laneEl.getAttribute("data-lane"); })[0]);
+      var j = i + dir;
+      if (j < 0 || j >= d.lanes.length) return;
+      var tmp = d.lanes[i]; d.lanes[i] = d.lanes[j]; d.lanes[j] = tmp;
+      saveState(); renderTimeline();
+    });
+  });
+  el.querySelectorAll("[data-ladd]").forEach(function (b) {
+    b.addEventListener("click", function () { openEditor(null, b.getAttribute("data-ladd")); });
+  });
+  var add = $("kbAddLane");
+  if (add) add.addEventListener("click", function () {
+    var v = prompt("新泳道名称（如：第1章 · 案发）：");
+    if (!v || !v.trim()) return;
+    var d = timelineData();
+    d.book.lanes.push({ id: uid(), title: v.trim(), cards: [] });
+    saveState(); renderTimeline();
+    toast("泳道已添加，拖卡片进去吧");
+  });
+}
+
+/* 时间线里的卡片点按菜单（手机友好） */
+function cardActions(id) {
+  var c = cardById(id); if (!c) return;
+  var d = timelineData();
+  var cur = laneOf(id);
+  var s = $("sheet");
+  var opts = d.lanes.map(function (l) {
+    var on = cur && cur.id === l.id;
+    return '<div class="pick-item"><span class="dot" style="background:var(--c-time)"></span>' +
+      '<span class="nm">' + esc(l.title) + (on ? " ✓ 当前" : "") + "</span>" +
+      (on ? "" : '<button data-mv="' + l.id + '">移到这里</button>') + "</div>";
+  }).join("");
+  s.innerHTML = '<div class="grab"></div><h3>' + esc((c.title || "无标题").slice(0, 20)) + "</h3>" +
+    (cur && !cur.pool ? "" : '<div class="paste-hint">当前在待放置区</div>') +
+    '<div class="pick-list">' + (opts || '<div class="pick-item">还没有泳道，先点右侧「＋新建泳道」</div>') + "</div>" +
+    '<div class="sheet-ops">' +
+    '<button class="btn-del" id="caOut">移出时间线</button>' +
+    '<button class="btn-ghost" id="caOpen">查看 / 编辑</button>' +
+    '<button class="btn-ghost" id="caClose">关闭</button></div>';
+  s.classList.remove("hidden"); $("sheetBackdrop").classList.remove("hidden");
+  s.querySelectorAll("[data-mv]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      moveCardToLane(id, b.getAttribute("data-mv")); closeSheet();
+    });
+  });
+  $("caOut").addEventListener("click", function () {
+    moveCardToLane(id, "__pool__"); closeSheet(); toast("已移出时间线");
+  });
+  $("caOpen").addEventListener("click", function () { openDetail(id); });
+  $("caClose").addEventListener("click", closeSheet);
+}
+
+/* ---- 卡片墙 ---- */
+function renderWall() {
+  var list = filteredCards(), wall = $("wall"), html = "";
+  if (!list.length) {
+    html = '<div class="wall-empty"><b>还没有卡片</b>点右下角 ＋ 创建卡片<br>记录人物、线索、时间线…<br>在卡片里直接粘贴截图也行</div>';
+  }
+  list.forEach(function (c) {
+    var m = catMeta(c.cat);
+    var imgs = (c.images || []).slice(0, 3).map(function (u) {
+      return '<img src="' + esc(u) + '" loading="lazy">';
+    }).join("");
+    var links = (c.links || []).length ? '<span class="c-links">🔗 ' + c.links.length + "</span>" : "";
+    html += '<div class="card" data-id="' + c.id + '" style="border-top-color:' + m.color + '">' +
+      (c.pinned ? '<span class="c-pin">📌</span>' : "") +
+      '<div class="c-head"><div class="c-title">' + esc(c.title || "（无标题）") + "</div>" +
+      '<span class="c-cat" style="background:' + m.color + '">' + m.name + "</span></div>" +
+      (c.content ? '<div class="c-body">' + esc(c.content) + "</div>" : "") +
+      (imgs ? '<div class="c-imgs">' + imgs + "</div>" : "") +
+      '<div class="c-foot"><span>' + (c.story ? "⏱️ " + esc(c.story) + " · " : "") + fmtTime(c.updated) + "</span>" + links + "</div></div>";
+  });
+  wall.innerHTML = html;
+}
+function fmtTime(t) {
+  if (!t) return "";
+  var d = new Date(t);
+  var now = new Date();
+  if (d.toDateString() === now.toDateString())
+    return "今天 " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  return (d.getMonth() + 1) + "/" + d.getDate();
+}
+
+/* ---- 人物关系图（圆形布局 SVG）---- */
+function renderGraph() {
+  var g = $("graph");
+  var nodes = cardsOfBook(curBookId);
+  var withLinks = nodes.filter(function (c) { return (c.links || []).length > 0; });
+  var set = {};
+  withLinks.forEach(function (c) { set[c.id] = 1; });
+  withLinks.forEach(function (c) { (c.links || []).forEach(function (l) { if (cardById(l) && cardById(l).bookId === curBookId) set[l] = 1; }); });
+  var ids = Object.keys(set).filter(function (id) { return cardById(id); });
+  if (ids.length < 2) {
+    g.innerHTML = '<div class="g-tip">🔗 关系图</div><div class="wall-empty"><b>还没有可展示的关系</b>在编辑卡片时添加「关联卡片」（双向关联），<br>比如把「凶手线索」关联到「某人物」，这里就会画出连线。</div>';
+    return;
+  }
+  var W = Math.max(360, Math.min(900, window.innerWidth - 24));
+  var H = Math.max(420, ids.length * 46);
+  var cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 64;
+  var pos = {};
+  ids.forEach(function (id, i) {
+    var a = -Math.PI / 2 + (2 * Math.PI * i) / ids.length;
+    pos[id] = { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
+  });
+  var svg = '<svg class="g-svg" viewBox="0 0 ' + W + " " + H + '">';
+  var drawn = {};
+  ids.forEach(function (id) {
+    var c = cardById(id);
+    (c.links || []).forEach(function (l) {
+      if (!pos[l] || drawn[id + "|" + l] || drawn[l + "|" + id]) return;
+      drawn[id + "|" + l] = 1;
+      svg += '<line x1="' + pos[id].x + '" y1="' + pos[id].y + '" x2="' + pos[l].x + '" y2="' + pos[l].y +
+        '" stroke="#c9c4e8" stroke-width="2"/>';
+    });
+  });
+  ids.forEach(function (id) {
+    var c = cardById(id), m = catMeta(c.cat), p = pos[id];
+    svg += '<g data-node="' + id + '" style="cursor:pointer">' +
+      '<circle cx="' + p.x + '" cy="' + p.y + '" r="34" fill="' + m.color + '18" stroke="' + m.color + '" stroke-width="2"/>' +
+      '<text x="' + p.x + '" y="' + (p.y + 5) + '" text-anchor="middle" font-size="17">' + m.em + "</text>" +
+      '<text x="' + p.x + '" y="' + (p.y + 52) + '" text-anchor="middle" font-size="12.5" font-weight="700" fill="#241f33">' +
+      esc((c.title || "").slice(0, 8) || "无标题") + "</text></g>";
+  });
+  svg += "</svg>";
+  g.innerHTML = '<div class="g-tip">🔗 关系图（点击圆圈打开卡片 · 双指/滚轮缩放页面）</div>' + svg;
+  g.querySelectorAll("[data-node]").forEach(function (el) {
+    el.addEventListener("click", function () { openDetail(el.getAttribute("data-node")); });
+  });
+}
+
+/* ---- 书本抽屉 ---- */
+function renderDrawer() {
+  var html = "";
+  state.projects.forEach(function (b) {
+    var n = cardsOfBook(b.id).length;
+    html += '<div class="book-item' + (b.id === curBookId ? " on" : "") + '" data-b="' + b.id + '">' +
+      '<span class="b-em">' + (b.em || "📕") + "</span>" +
+      '<div style="flex:1;min-width:0"><div class="b-n">' + esc(b.name) + '</div>' +
+      '<div class="b-s">' + n + " 张卡片</div></div>" +
+      (state.projects.length > 1 ? '<button class="b-del" data-delb="' + b.id + '" title="删除">🗑</button>' : "") +
+      "</div>";
+  });
+  $("bookList").innerHTML = html;
+}
+
+/* ============ 卡片编辑 ============ */
+function openEditor(card, presetLane) {
+  editingCard = card || null;
+  editorPresetLane = presetLane || null;
+  pickedCat = card ? card.cat : (curCat !== "all" ? curCat : "other");
+  draftImgs = card ? (card.images || []).slice() : [];
+  draftLinks = card ? (card.links || []).slice() : [];
+  var s = $("sheet");
+  s.innerHTML = '<div class="grab"></div><h3>' + (card ? "编辑卡片" : "新建卡片") + "</h3>" +
+    '<div class="f-row"><label>分类</label><div class="cat-picks" id="edCats"></div></div>' +
+    '<div class="f-row"><label>标题</label><input type="text" id="edTitle" maxlength="80" placeholder="例如：死者宿舍的第三把钥匙"></div>' +
+    '<div class="f-row"><label>内容</label><textarea id="edContent" placeholder="记录细节、页码、你的推理…&#10;📝 支持直接 Ctrl+V / 长按粘贴截图，会自动上传"></textarea>' +
+    '<div class="paste-hint">💡 在上方输入框里直接粘贴截图，或点下方「＋图片」选择文件</div></div>' +
+    '<div class="f-row"><label>图片（' + draftImgs.length + '）</label>' +
+    '<div class="img-pre" id="edImgs"></div>' +
+    '<button class="mini-btn" id="edAddImg" style="margin-top:8px">＋ 图片</button></div>' +
+    '<div class="f-row"><label>关联卡片（双向，可用来连人物关系）</label><div id="edLinks"></div>' +
+    '<button class="mini-btn" id="edAddLink" style="margin-top:8px">＋ 关联卡片</button></div>' +
+    '<div class="f-row f-grid2"><div><label>置顶</label><select id="edPin"><option value="0">否</option><option value="1">是 📌</option></select></div>' +
+    '<div><label>标签（逗号分隔）</label><input type="text" id="edTags" placeholder="第一卷, 可疑"></div></div>' +
+    '<div class="f-row"><label>故事内时间备注（选填，如：第3章 / 1990年冬。时间线看板为手动拖拽整理）</label>' +
+    '<input type="text" id="edStory" maxlength="40" placeholder="留空则不显示在时间线上"></div>' +
+    '<div class="sheet-ops">' +
+    (card ? '<button class="btn-del" id="edDel">🗑</button>' : "") +
+    '<button class="btn-ghost" id="edCancel">取消</button>' +
+    '<button class="btn-save" id="edSave">保存</button></div>';
+  s.classList.remove("hidden"); $("sheetBackdrop").classList.remove("hidden");
+
+  $("edTitle").value = card ? (card.title || "") : "";
+  $("edContent").value = card ? (card.content || "") : "";
+  $("edPin").value = card && card.pinned ? "1" : "0";
+  $("edTags").value = card ? (card.tags || []).join(", ") : "";
+  $("edStory").value = card ? (card.story || "") : "";
+
+  renderEdCats(); renderEdImgs(); renderEdLinks();
+
+  $("edCats").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-cc]"); if (!b) return;
+    pickedCat = b.getAttribute("data-cc"); renderEdCats();
+  });
+  $("edAddImg").addEventListener("click", function () { $("filePick").click(); });
+  $("edAddLink").addEventListener("click", showLinkPicker);
+  $("edCancel").addEventListener("click", closeSheet);
+  if (card) $("edDel").addEventListener("click", function () {
+    if (!confirm("确定删除这张卡片？")) return;
+    var id = card.id;
+    state.cards.forEach(function (c) {
+      if (c.links) c.links = c.links.filter(function (l) { return l !== id; });
+    });
+    state.cards = state.cards.filter(function (c) { return c.id !== id; });
+    saveState(); closeSheet(); renderAll(); toast("已删除");
+  });
+  $("edSave").addEventListener("click", saveCard);
+  $("filePick").onchange = function () {
+    Array.prototype.forEach.call(this.files, uploadImage);
+    this.value = "";
+  };
+  // 关键：内容输入框支持粘贴图片
+  $("edContent").addEventListener("paste", function (e) {
+    var items = (e.clipboardData || {}).items || [];
+    var got = false;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type && items[i].type.indexOf("image") === 0) {
+        got = true;
+        uploadImage(items[i].getAsFile());
+      }
+    }
+    if (got) { e.preventDefault(); toast("图片已上传 ✓"); }
+  });
+  // 整个弹层也支持拖拽图片
+  s.addEventListener("dragover", function (e) { e.preventDefault(); });
+  s.addEventListener("drop", function (e) {
+    e.preventDefault();
+    Array.prototype.forEach.call(e.dataTransfer.files, function (f) {
+      if (f.type.indexOf("image") === 0) uploadImage(f);
+    });
+  });
+}
+function renderEdCats() {
+  var html = "";
+  state.settings.categories.forEach(function (cid) {
+    var m = catMeta(cid);
+    html += '<button class="cat-pick' + (pickedCat === cid ? " on" : "") + '" data-cc="' + cid + '"' +
+      (pickedCat === cid ? ' style="background:' + m.color + '"' : "") + ">" + m.em + " " + m.name + "</button>";
+  });
+  $("edCats").innerHTML = html;
+}
+function renderEdImgs() {
+  var el = $("edImgs"); if (!el) return;
+  el.innerHTML = draftImgs.map(function (u, i) {
+    return '<div class="im"><img data-key="' + esc(u) + '"><button class="del" data-i="' + i + '">✕</button></div>';
+  }).join("");
+  el.querySelectorAll(".del").forEach(function (b) {
+    b.addEventListener("click", function () {
+      draftImgs.splice(+b.getAttribute("data-i"), 1);
+      renderEdImgs();
+      var lab = document.querySelector(".f-row label");
+    });
+  });
+  var row = el.parentElement && el.parentElement.querySelector("label");
+  if (row) row.textContent = "图片（" + draftImgs.length + "）";
+}
+function renderEdLinks() {
+  var el = $("edLinks"); if (!el) return;
+  if (!draftLinks.length) { el.innerHTML = '<div class="paste-hint">还没有关联，点下方按钮选择卡片</div>'; return; }
+  el.innerHTML = '<div class="link-chips">' + draftLinks.map(function (id) {
+    var c = cardById(id);
+    if (!c) return "";
+    var m = catMeta(c.cat);
+    return '<span class="link-chip"><span class="dot" style="background:' + m.color + '"></span>' +
+      "<b>" + m.name + "</b> " + esc((c.title || "").slice(0, 12)) +
+      ' <span class="x" data-unlink="' + id + '">✕</span></span>';
+  }).join("") + "</div>";
+  el.querySelectorAll("[data-unlink]").forEach(function (x) {
+    x.addEventListener("click", function () {
+      draftLinks = draftLinks.filter(function (l) { return l !== x.getAttribute("data-unlink"); });
+      renderEdLinks();
+    });
+  });
+}
+function showLinkPicker() {
+  var pool = cardsOfBook(curBookId).filter(function (c) {
+    return (!editingCard || c.id !== editingCard.id) && draftLinks.indexOf(c.id) < 0;
+  });
+  var s = $("sheet");
+  var box = document.createElement("div");
+  box.innerHTML = "<h3>选择要关联的卡片</h3><div class='pick-list'>" +
+    (pool.length ? pool.map(function (c) {
+      var m = catMeta(c.cat);
+      return '<div class="pick-item"><span class="dot" style="background:' + m.color + '"></span>' +
+        '<span class="nm">' + m.em + " " + esc((c.title || "无标题").slice(0, 18)) + "</span>" +
+        '<button data-link="' + c.id + '">关联</button></div>';
+    }).join("") : '<div class="pick-item">当前书本还没有其他卡片</div>') +
+    "</div>" + '<div class="sheet-ops"><button class="btn-ghost" id="lpBack">返回</button></div>';
+  s.innerHTML = '<div class="grab"></div>' + box.innerHTML;
+  s.querySelectorAll("[data-link]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      draftLinks.push(b.getAttribute("data-link"));
+      openEditorRestore();
+    });
+  });
+  $("lpBack").addEventListener("click", openEditorRestore);
+}
+function openEditorRestore() { openEditor(editingCard ? Object.assign({}, editingCard) : null); }
+
+function uploadImage(file) {
+  if (!file) return;
+  if (file.size > 15 * 1024 * 1024) { toast("图片超过 15MB"); return; }
+  toast("处理图片中…");
+  var img = new Image();
+  var url = URL.createObjectURL(file);
+  img.onload = function () {
+    var MAX = 1400;
+    var w = img.width, h = img.height;
+    if (Math.max(w, h) > MAX) { var kk = MAX / Math.max(w, h); w = Math.round(w * kk); h = Math.round(h * kk); }
+    var cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    cv.getContext("2d").drawImage(img, 0, 0, w, h);
+    var data = cv.toDataURL("image/jpeg", 0.85);
+    URL.revokeObjectURL(url);
+    draftImgs.push(data);
+    renderEdImgs();
+    toast("图片已加入 ✓");
+  };
+  img.onerror = function () { toast("图片读取失败"); URL.revokeObjectURL(url); };
+  img.src = url;
+}
+
+function saveCard() {
+  var title = $("edTitle").value.trim();
+  var content = $("edContent").value;
+  if (!title && !content.trim() && !draftImgs.length) { toast("卡片是空的"); return; }
+  var now = Date.now();
+  var card = editingCard || { id: uid(), bookId: curBookId, created: now };
+  card.title = title; card.content = content; card.cat = pickedCat;
+  card.images = draftImgs; card.links = draftLinks;
+  card.pinned = $("edPin").value === "1";
+  card.tags = $("edTags").value.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean);
+  card.story = $("edStory").value.trim();
+  card.updated = now;
+  // 双向关联
+  card.links.forEach(function (l) {
+    var t = cardById(l);
+    if (t) {
+      t.links = t.links || [];
+      if (t.links.indexOf(card.id) < 0) t.links.push(card.id);
+      t.updated = t.updated || now;
+    }
+  });
+  state.cards.forEach(function (c) {
+    if (c.links && c.links.indexOf(card.id) >= 0 && card.links.indexOf(c.id) < 0)
+      c.links = c.links.filter(function (l) { return l !== card.id; });
+  });
+  if (!editingCard) {
+    state.cards.push(card);
+    if (editorPresetLane) {
+      var d = timelineData();
+      var lane = d.lanes.filter(function (l) { return l.id === editorPresetLane; })[0];
+      if (lane) { lane.cards = lane.cards || []; lane.cards.push(card.id); }
+    }
+  }
+  editorPresetLane = null;
+  saveState(); closeSheet(); renderAll(); toast("已保存 ✓");
+}
+
+/* ============ 卡片详情 ============ */
+function openDetail(id) {
+  var c = cardById(id); if (!c) return;
+  var m = catMeta(c.cat);
+  var s = $("sheet");
+  var imgs = (c.images || []).map(function (u) {
+    return '<img class="img-big" src="' + esc(u) + '">';
+  }).join("");
+  var links = (c.links || []).map(function (l) {
+    var t = cardById(l); if (!t) return "";
+    var tm = catMeta(t.cat);
+    return '<div class="d-link" data-go="' + t.id + '"><span class="dot" style="background:' + tm.color + '"></span>' +
+      "<b>" + tm.name + "</b> " + esc(t.title || "无标题") + '<span class="go">查看 ›</span></div>';
+  }).join("");
+  s.innerHTML = '<div class="grab"></div>' +
+    '<span class="d-cat" style="background:' + m.color + '">' + m.em + " " + m.name + "</span>" +
+    '<h3 style="font-size:18px">' + esc(c.title || "（无标题）") + "</h3>" +
+    (c.story ? '<div class="paste-hint" style="color:var(--c-time);font-weight:700">⏱️ ' + esc(c.story) + "</div>" : "") +
+    (c.tags && c.tags.length ? '<div class="paste-hint">' + c.tags.map(function (t) { return "#" + esc(t); }).join("　") + "</div>" : "") +
+    (c.content ? '<div class="d-body">' + esc(c.content) + "</div>" : "") +
+    (imgs ? '<div class="d-sec">🖼 图片</div>' + imgs : "") +
+    (links ? '<div class="d-sec">🔗 关联卡片</div><div class="d-links">' + links + "</div>" : "") +
+    '<div class="d-sec">编辑时间：' + new Date(c.updated || c.created || 0).toLocaleString("zh-CN") + "</div>" +
+    '<div class="sheet-ops"><button class="btn-del" id="dDel">🗑</button>' +
+    '<button class="btn-ghost" id="dEdit">✏️ 编辑</button>' +
+    '<button class="btn-ghost" id="dPin">' + (c.pinned ? "取消置顶" : "📌 置顶") + "</button></div>";
+  s.classList.remove("hidden"); $("sheetBackdrop").classList.remove("hidden");
+  s.querySelectorAll("[data-go]").forEach(function (el) {
+    el.addEventListener("click", function () { openDetail(el.getAttribute("data-go")); });
+  });
+  s.querySelectorAll("[data-big]").forEach(function (el) {
+    el.addEventListener("click", function () { toast("长按图片可保存"); });
+  });
+  $("dEdit").addEventListener("click", function () { openEditor(Object.assign({}, c)); });
+  $("dPin").addEventListener("click", function () {
+    c.pinned = !c.pinned; c.updated = Date.now();
+    saveState(); openDetail(id); renderAll();
+  });
+  $("dDel").addEventListener("click", function () {
+    if (!confirm("确定删除这张卡片？")) return;
+    var cid = c.id;
+    state.cards.forEach(function (x) {
+      if (x.links) x.links = x.links.filter(function (l) { return l !== cid; });
+    });
+    state.cards = state.cards.filter(function (x) { return x.id !== cid; });
+    saveState(); closeSheet(); renderAll(); toast("已删除");
+  });
+}
+
+/* ============ 菜单 ============ */
+function openMenu() {
+  var s = $("sheet");
+  s.innerHTML = '<div class="grab"></div><h3>设置</h3>' +
+    '<div class="menu-list">' +
+    '<button class="menu-item" id="mCat"><span class="mi-ic">🏷️</span><span>分类管理<small>新增自定义分类</small></span></button>' +
+    '<button class="menu-item" id="mToken"><span class="mi-ic">📤</span><span>导出数据包<small>把全部卡片+图片存成文件，传到另一台设备</small></span></button>' +
+    '<button class="menu-item" id="mImport"><span class="mi-ic">📥</span><span>导入数据包<small>选择另一台设备导出的文件，自动合并</small></span></button>' +
+    '<button class="menu-item" id="mBackup"><span class="mi-ic">📦</span><span>导出备份<small>下载包含全部卡片和图片的 zip</small></span></button>' +
+    "</div>" +
+    '<div class="token-box hidden" id="tokenBox"></div>' +
+    '<div class="sheet-ops"><button class="btn-ghost" id="mClose">关闭</button></div>';
+  s.classList.remove("hidden"); $("sheetBackdrop").classList.remove("hidden");
+  $("mClose").addEventListener("click", closeSheet);
+  $("mBackup").addEventListener("click", exportBackup);
+  $("mToken").addEventListener("click", exportBackup);
+  $("mImport").addEventListener("click", function () {
+    var inp = document.createElement("input");
+    inp.type = "file"; inp.accept = ".json,application/json";
+    inp.onchange = function () { if (inp.files[0]) importBackup(inp.files[0]); };
+    inp.click();
+  });
+  $("mCat").addEventListener("click", openCatManager);
+}
+function openCatManager() {
+  var s = $("sheet");
+  var used = {};
+  cardsOfBook(curBookId).forEach(function (c) { used[c.cat] = 1; });
+  s.innerHTML = '<div class="grab"></div><h3>分类管理</h3>' +
+    '<div class="pick-list">' + state.settings.categories.map(function (cid) {
+      var m = catMeta(cid);
+      var fixed = CAT_ORDER.indexOf(cid) >= 0;
+      return '<div class="pick-item"><span class="dot" style="background:' + m.color + '"></span>' +
+        '<span class="nm">' + m.em + " " + m.name + (used[cid] ? " · 有卡片" : "") + "</span>" +
+        (fixed ? "" : '<button class="rm" data-rmcat="' + cid + '">移除</button>') + "</div>";
+    }).join("") + "</div>" +
+    '<div class="f-row" style="margin-top:12px"><label>新增分类</label>' +
+    '<div style="display:flex;gap:8px"><input type="text" id="newCatName" placeholder="分类名，如：作案手法" style="flex:1">' +
+    '<button class="mini-btn primary" id="addCat" style="flex:none">添加</button></div></div>' +
+    '<div class="sheet-ops"><button class="btn-ghost" id="cmBack">返回</button></div>';
+  s.querySelectorAll("[data-rmcat]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var cid = b.getAttribute("data-rmcat");
+      state.settings.categories = state.settings.categories.filter(function (x) { return x !== cid; });
+      saveState(); openCatManager(); renderCats();
+    });
+  });
+  $("addCat").addEventListener("click", function () {
+    var name = $("newCatName").value.trim();
+    if (!name) return;
+    var key = "c_" + uid();
+    CAT_META[key] = { name: name, color: hslColor(state.settings.categories.length), em: "🏷" };
+    state.settings.categories.push(key);
+    saveState(); openCatManager(); renderCats(); toast("已添加");
+  });
+  $("cmBack").addEventListener("click", openMenu);
+}
+function hslColor(i) {
+  return "hsl(" + ((i * 67) % 360) + ",62%,55%)";
+}
+
+/* ============ 书本管理 ============ */
+function newBookPrompt() {
+  var name = prompt("书名（如：白夜行）：");
+  if (!name || !name.trim()) return;
+  var ems = ["📕", "📗", "📘", "📙", "📓", "🔍", "🕵️", "🌃"];
+  state.projects.push({ id: uid(), name: name.trim(), em: ems[state.projects.length % ems.length], created: Date.now() });
+  curBookId = state.projects[state.projects.length - 1].id;
+  curCat = "all";
+  saveState(); renderAll();
+  toast("已创建，开始记卡片吧");
+}
+
+/* ============ 事件绑定 ============ */
+function closeSheet() {
+  $("sheet").classList.add("hidden");
+  $("sheetBackdrop").classList.add("hidden");
+}
+$("sheetBackdrop").addEventListener("click", closeSheet);
+$("drawerBackdrop").addEventListener("click", function () {
+  $("bookDrawer").classList.add("hidden");
+  $("drawerBackdrop").classList.add("hidden");
+});
+$("btnBooks").addEventListener("click", function () {
+  $("bookDrawer").classList.remove("hidden");
+  $("drawerBackdrop").classList.remove("hidden");
+});
+$("btnNewBook").addEventListener("click", newBookPrompt);
+$("bookList").addEventListener("click", function (e) {
+  var del = e.target.closest("[data-delb]");
+  if (del) {
+    var bid = del.getAttribute("data-delb");
+    if (!confirm("删除这本书及其全部卡片？")) return;
+    state.cards = state.cards.filter(function (c) { return c.bookId !== bid; });
+    state.projects = state.projects.filter(function (b) { return b.id !== bid; });
+    if (curBookId === bid) curBookId = state.projects[0] ? state.projects[0].id : "";
+    saveState(); renderAll(); return;
+  }
+  var item = e.target.closest("[data-b]");
+  if (item) {
+    curBookId = item.getAttribute("data-b"); curCat = "all";
+    $("bookDrawer").classList.add("hidden");
+    $("drawerBackdrop").classList.add("hidden");
+    renderAll();
+  }
+});
+$("catBar").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-cat]"); if (!b) return;
+  curCat = b.getAttribute("data-cat"); renderCats(); renderView();
+});
+$("fab").addEventListener("click", function () { openEditor(null); });
+$("wall").addEventListener("click", function (e) {
+  var c = e.target.closest("[data-id]");
+  if (c) openDetail(c.getAttribute("data-id"));
+});
+$("btnSearch").addEventListener("click", function () {
+  $("searchWrap").classList.toggle("hidden");
+  if ($("searchWrap").classList.contains("hidden")) {
+    searchText = ""; $("searchInput").value = ""; renderWall();
+  } else $("searchInput").focus();
+});
+$("searchInput").addEventListener("input", function () {
+  searchText = this.value.trim(); renderWall();
+});
+$("btnMenu").addEventListener("click", openMenu);
+$("btnView").addEventListener("click", function () {
+  view = view === "wall" ? "timeline" : (view === "timeline" ? "graph" : "wall");
+  toast(view === "timeline" ? "时间线" : (view === "graph" ? "人物关系图" : "卡片墙"));
+  renderView();
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") closeSheet();
+});
+
+/* ============ 启动 ============ */
+loadState();
+
+</script>
+</body>
+</html>

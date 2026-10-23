@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#6c5ce7">
+<title>小说笔记工作台</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f5fa;
+  font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:#241f33}
+.wrap{width:min(400px,88vw)}
+h1{font-size:20px;text-align:center;margin:0 0 6px}
+p.sub{text-align:center;color:#8a879e;font-size:13px;margin:0 0 26px}
+a.card{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #e6e4f0;border-radius:16px;
+  padding:18px;margin-bottom:14px;text-decoration:none;color:inherit;box-shadow:0 4px 18px rgba(40,30,80,.07)}
+a.card .ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:22px;color:#fff;flex:none}
+a.card b{font-size:15.5px;display:block}
+a.card small{color:#8a879e;font-size:12px;display:block;margin-top:3px;line-height:1.5}
+.g{background:linear-gradient(135deg,#6c5ce7,#a29bfe)}
+.l{background:linear-gradient(135deg,#00b894,#55efc4)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📖 小说笔记工作台</h1>
+  <p class="sub">选择要使用的版本（两版数据格式互通）</p>
+  <a class="card" href="gh/">
+    <span class="ic g">☁️</span>
+    <span><b>GitHub 自动同步版（推荐）</b>
+    <small>数据存你的 GitHub 私有仓库，手机电脑自动同步。首次使用需在应用内完成连接向导。</small></span>
+  </a>
+  <a class="card" href="local/">
+    <span class="ic l">📵</span>
+    <span><b>单机版（手动同步）</b>
+    <small>数据只存在本设备浏览器，通过导出/导入数据包同步。零账号零联网。</small></span>
+  </a>
+</div>
+</body>
+</html>
