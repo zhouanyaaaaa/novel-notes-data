@@ -3,15 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#6c5ce7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="小说笔记">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="apple-180.png">
-<link rel="icon" href="icon-192.png">
-<title>小说笔记工作台 · 单机版 · v1.4.0</title>
+<title>小说笔记工作台 · 单机版</title>
 <style>
 :root{
   --bg:#f5f5fa; --card:#fff; --line:#e6e4f0; --ink:#241f33; --ink2:#8a879e;
@@ -144,18 +140,6 @@ button{font-family:inherit;cursor:pointer}
   box-shadow:0 -10px 40px rgba(0,0,0,.2)}
 .sheet .grab{width:42px;height:4px;border-radius:2px;background:#d8d5e8;margin:4px auto 12px}
 .sheet h3{margin:0 0 12px;font-size:16px}
-
-/* 电脑端：弹层改成居中窗口，并可拖动（抓标题栏或顶部小横条） */
-@media (min-width:760px){
-  .sheet{top:46%;left:50%;bottom:auto;transform:translate(-50%,-50%);
-    width:min(560px,94vw);max-height:84vh;border-radius:16px;padding:14px 18px 18px;
-    box-shadow:0 24px 60px rgba(20,15,40,.28);border:1px solid var(--line)}
-  .sheet .grab{width:56px;background:#c9c6d8;cursor:grab;margin:2px auto 10px}
-  .sheet h3{cursor:grab;user-select:none;display:flex;align-items:center;gap:8px}
-  .sheet.dragging,.sheet.dragging h3,.sheet.dragging .grab{cursor:grabbing}
-  .sheet.dragging{transition:none}
-  .sheet h3::after{content:"拖动我可移动 · 双击回正";font-size:11px;font-weight:400;color:var(--ink2);margin-left:auto;white-space:nowrap}
-}
 .f-row{margin-bottom:11px}
 .f-row label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:5px}
 .f-row input[type=text],.f-row textarea,.f-row select{width:100%;border:1px solid var(--line);border-radius:11px;
@@ -167,13 +151,6 @@ button{font-family:inherit;cursor:pointer}
 .cat-pick{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink2)}
 .cat-pick.on{color:#fff;border-color:transparent}
 .link-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-/* 关联 + 关系备注 */
-.link-box{display:flex;flex-direction:column;gap:8px;margin-top:6px}
-.link-row{display:flex;flex-direction:column;gap:5px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
-.link-row .link-chip{align-self:flex-start}
-.link-note{width:100%;border:1px dashed var(--line);background:transparent;border-radius:9px;padding:7px 9px;
-  font-size:12.5px;color:var(--ink)}
-.link-note:focus{outline:none;border-color:var(--acc);border-style:solid}
 .link-chip{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--line);
   border-radius:999px;padding:4px 10px;font-size:12px}
 .link-chip b{font-weight:700}
@@ -209,8 +186,6 @@ button{font-family:inherit;cursor:pointer}
   border-radius:11px;padding:9px 12px;font-size:13px}
 .d-link .dot{width:9px;height:9px;border-radius:50%;flex:none}
 .d-link .go{margin-left:auto;color:var(--acc);font-weight:700;font-size:12px;border:0;background:none}
-.d-note{margin-left:6px;background:#f4f1ff;border-radius:7px;padding:2px 7px;font-size:11.5px;color:#5a4fa8;font-weight:600;
-  max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* 菜单弹层 */
 .menu-list{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
@@ -235,8 +210,6 @@ button{font-family:inherit;cursor:pointer}
   font-size:12.5px;font-weight:700;text-align:center;padding:7px 12px;border-bottom:1px solid #f1e3a0}
 body.is-offline .fab{filter:grayscale(1);opacity:.55}
 
-/* 版本行（菜单底部） */
-.ver-line{text-align:center;font-size:11.5px;color:var(--ink2);margin:2px 0 10px;letter-spacing:.3px}
 </style>
 </head>
 <body>
@@ -299,8 +272,6 @@ body.is-offline .fab{filter:grayscale(1);opacity:.55}
 <script>
 /* 小说笔记工作台 · 前端 */
 "use strict";
-var APP_VERSION = "v1.4.0";
-var APP_DATE = "2026-10-25";
 
 var $ = function (id) { return document.getElementById(id); };
 var state = null;          // {projects, cards, settings}
@@ -362,7 +333,6 @@ function applyState(d) {
   state.projects = state.projects || [];
   state.cards = state.cards || [];
   state.settings = Object.assign({}, DEFAULT_SETTINGS, state.settings || {});
-  normLinks(state);            // 兼容旧数据：把字符串 id 升级成 {id, note}
   if (!state.projects.length) {
     state.projects.push({ id: uid(), name: "我的第一本书", em: "📕", created: Date.now() });
   }
@@ -737,13 +707,7 @@ function renderGraph() {
   var withLinks = nodes.filter(function (c) { return (c.links || []).length > 0; });
   var set = {};
   withLinks.forEach(function (c) { set[c.id] = 1; });
-  withLinks.forEach(function (c) {
-    (c.links || []).forEach(function (l) {
-      var lid = linkId(l);
-      var t = cardById(lid);
-      if (t && t.bookId === curBookId) set[lid] = 1;
-    });
-  });
+  withLinks.forEach(function (c) { (c.links || []).forEach(function (l) { if (cardById(l) && cardById(l).bookId === curBookId) set[l] = 1; }); });
   var ids = Object.keys(set).filter(function (id) { return cardById(id); });
   if (ids.length < 2) {
     g.innerHTML = '<div class="g-tip">🔗 关系图</div><div class="wall-empty"><b>还没有可展示的关系</b>在编辑卡片时添加「关联卡片」（双向关联），<br>比如把「凶手线索」关联到「某人物」，这里就会画出连线。</div>';
@@ -762,18 +726,10 @@ function renderGraph() {
   ids.forEach(function (id) {
     var c = cardById(id);
     (c.links || []).forEach(function (l) {
-      var lid = linkId(l);
-      if (!pos[lid] || drawn[id + "|" + lid] || drawn[lid + "|" + id]) return;
-      drawn[id + "|" + lid] = 1;
-      svg += '<line x1="' + pos[id].x + '" y1="' + pos[id].y + '" x2="' + pos[lid].x + '" y2="' + pos[lid].y +
+      if (!pos[l] || drawn[id + "|" + l] || drawn[l + "|" + id]) return;
+      drawn[id + "|" + l] = 1;
+      svg += '<line x1="' + pos[id].x + '" y1="' + pos[id].y + '" x2="' + pos[l].x + '" y2="' + pos[l].y +
         '" stroke="#c9c4e8" stroke-width="2"/>';
-      var note = pairNote(c, cardById(lid));
-      if (note) {
-        var mx = (pos[id].x + pos[lid].x) / 2, my = (pos[id].y + pos[lid].y) / 2;
-        var wnote = esc(note.length > 10 ? note.slice(0, 10) + "…" : note);
-        svg += '<text x="' + mx + '" y="' + (my - 3) + '" text-anchor="middle" font-size="11.5" font-weight="700"' +
-          ' fill="#6b6288" stroke="#fff" stroke-width="3.5" paint-order="stroke">' + wnote + "</text>";
-      }
     });
   });
   ids.forEach(function (id) {
@@ -807,43 +763,14 @@ function renderDrawer() {
 }
 
 /* ============ 卡片编辑 ============ */
-/* ---------- 关联卡片：结构兼容 + 工具函数 ----------
- * 旧数据：links = ["id1", "id2"]
- * 新数据：links = [{ id: "id1", note: "父子" }]
- */
-function linkId(l) { return typeof l === "string" ? l : (l && l.id); }
-function linkNote(l) { return (l && typeof l === "object" && l.note) || ""; }
-function normLinks(d) {
-  (d.cards || []).forEach(function (c) {
-    c.links = (c.links || []).map(function (l) {
-      return { id: linkId(l), note: linkNote(l) };
-    }).filter(function (l) { return !!l.id; });
-  });
-}
-function setLink(card, id, note) {
-  card.links = card.links || [];
-  var f = card.links.filter(function (l) { return linkId(l) === id; })[0];
-  if (f) { if (note != null) f.note = note; }
-  else card.links.push({ id: id, note: note || "" });
-}
-function removeLink(card, id) {
-  card.links = (card.links || []).filter(function (l) { return linkId(l) !== id; });
-}
-/* 两个方向任一方向写了备注都算这条关系的备注 */
-function pairNote(a, b) {
-  var n = "";
-  (a.links || []).forEach(function (l) { if (linkId(l) === b.id && linkNote(l)) n = linkNote(l); });
-  if (!n) (b.links || []).forEach(function (l) { if (linkId(l) === a.id && linkNote(l)) n = linkNote(l); });
-  return n;
-}
-
 function openEditor(card, presetLane) {
   editingCard = card || null;
   editorPresetLane = presetLane || null;
   pickedCat = card ? card.cat : (curCat !== "all" ? curCat : "other");
   draftImgs = card ? (card.images || []).slice() : [];
-  draftLinks = card ? (card.links || []).map(function (l) { return { id: linkId(l), note: linkNote(l) }; }) : [];
-  var fields =
+  draftLinks = card ? (card.links || []).slice() : [];
+  var s = $("sheet");
+  s.innerHTML = '<div class="grab"></div><h3>' + (card ? "编辑卡片" : "新建卡片") + "</h3>" +
     '<div class="f-row"><label>分类</label><div class="cat-picks" id="edCats"></div></div>' +
     '<div class="f-row"><label>标题</label><input type="text" id="edTitle" maxlength="80" placeholder="例如：死者宿舍的第三把钥匙"></div>' +
     '<div class="f-row"><label>内容</label><textarea id="edContent" placeholder="记录细节、页码、你的推理…&#10;📝 支持直接 Ctrl+V / 长按粘贴截图，会自动上传"></textarea>' +
@@ -851,7 +778,7 @@ function openEditor(card, presetLane) {
     '<div class="f-row"><label>图片（' + draftImgs.length + '）</label>' +
     '<div class="img-pre" id="edImgs"></div>' +
     '<button class="mini-btn" id="edAddImg" style="margin-top:8px">＋ 图片</button></div>' +
-    '<div class="f-row"><label>关联卡片（双向）· 可给每条关系写备注</label><div id="edLinks"></div>' +
+    '<div class="f-row"><label>关联卡片（双向，可用来连人物关系）</label><div id="edLinks"></div>' +
     '<button class="mini-btn" id="edAddLink" style="margin-top:8px">＋ 关联卡片</button></div>' +
     '<div class="f-row f-grid2"><div><label>置顶</label><select id="edPin"><option value="0">否</option><option value="1">是 📌</option></select></div>' +
     '<div><label>标签（逗号分隔）</label><input type="text" id="edTags" placeholder="第一卷, 可疑"></div></div>' +
@@ -861,9 +788,6 @@ function openEditor(card, presetLane) {
     (card ? '<button class="btn-del" id="edDel">🗑</button>' : "") +
     '<button class="btn-ghost" id="edCancel">取消</button>' +
     '<button class="btn-save" id="edSave">保存</button></div>';
-  var s = $("sheet");
-  s.innerHTML = '<div class="grab"></div><h3>' + (card ? "编辑卡片" : "新建卡片") + "</h3>" +
-    '<div id="edWrap">' + fields + "</div>";
   s.classList.remove("hidden"); $("sheetBackdrop").classList.remove("hidden");
 
   $("edTitle").value = card ? (card.title || "") : "";
@@ -884,7 +808,9 @@ function openEditor(card, presetLane) {
   if (card) $("edDel").addEventListener("click", function () {
     if (!confirm("确定删除这张卡片？")) return;
     var id = card.id;
-    state.cards.forEach(function (c) { removeLink(c, id); });
+    state.cards.forEach(function (c) {
+      if (c.links) c.links = c.links.filter(function (l) { return l !== id; });
+    });
     state.cards = state.cards.filter(function (c) { return c.id !== id; });
     saveState(); closeSheet(); renderAll(); toast("已删除");
   });
@@ -941,42 +867,27 @@ function renderEdImgs() {
 function renderEdLinks() {
   var el = $("edLinks"); if (!el) return;
   if (!draftLinks.length) { el.innerHTML = '<div class="paste-hint">还没有关联，点下方按钮选择卡片</div>'; return; }
-  el.innerHTML = '<div class="link-box">' + draftLinks.map(function (lk) {
-    var c = cardById(lk.id);
+  el.innerHTML = '<div class="link-chips">' + draftLinks.map(function (id) {
+    var c = cardById(id);
     if (!c) return "";
     var m = catMeta(c.cat);
-    return '<div class="link-row"><span class="link-chip"><span class="dot" style="background:' + m.color + '"></span>' +
-      "<b>" + m.name + "</b> " + esc((c.title || "无标题").slice(0, 12)) +
-      '<span class="x" data-unlink="' + esc(lk.id) + '">✕</span></span>' +
-      '<input class="link-note" type="text" maxlength="40" data-note="' + esc(lk.id) + '"' +
-      ' placeholder="关系备注（选填）：父子 / 伪造的不在场证明…" value="' + esc(lk.note || "") + '"></div>';
+    return '<span class="link-chip"><span class="dot" style="background:' + m.color + '"></span>' +
+      "<b>" + m.name + "</b> " + esc((c.title || "").slice(0, 12)) +
+      ' <span class="x" data-unlink="' + id + '">✕</span></span>';
   }).join("") + "</div>";
   el.querySelectorAll("[data-unlink]").forEach(function (x) {
     x.addEventListener("click", function () {
-      var id = x.getAttribute("data-unlink");
-      draftLinks = draftLinks.filter(function (l) { return l.id !== id; });
+      draftLinks = draftLinks.filter(function (l) { return l !== x.getAttribute("data-unlink"); });
       renderEdLinks();
     });
   });
-  el.querySelectorAll("[data-note]").forEach(function (inp) {
-    inp.addEventListener("input", function () {
-      var id = inp.getAttribute("data-note");
-      draftLinks.forEach(function (l) { if (l.id === id) l.note = inp.value; });
-    });
-  });
 }
-/* 关联选择面板：内联显示，不重建整个弹层，避免标题/正文被清空 */
 function showLinkPicker() {
-  var wrap = $("edWrap");
-  if (!wrap) return;
-  wrap.classList.add("hidden");
   var pool = cardsOfBook(curBookId).filter(function (c) {
-    if (editingCard && c.id === editingCard.id) return false;
-    return !draftLinks.some(function (l) { return l.id === c.id; });
+    return (!editingCard || c.id !== editingCard.id) && draftLinks.indexOf(c.id) < 0;
   });
   var s = $("sheet");
   var box = document.createElement("div");
-  box.id = "linkPicker";
   box.innerHTML = "<h3>选择要关联的卡片</h3><div class='pick-list'>" +
     (pool.length ? pool.map(function (c) {
       var m = catMeta(c.cat);
@@ -985,21 +896,16 @@ function showLinkPicker() {
         '<button data-link="' + c.id + '">关联</button></div>';
     }).join("") : '<div class="pick-item">当前书本还没有其他卡片</div>') +
     "</div>" + '<div class="sheet-ops"><button class="btn-ghost" id="lpBack">返回</button></div>';
-  s.appendChild(box);
-  box.querySelectorAll("[data-link]").forEach(function (b) {
+  s.innerHTML = '<div class="grab"></div>' + box.innerHTML;
+  s.querySelectorAll("[data-link]").forEach(function (b) {
     b.addEventListener("click", function () {
-      draftLinks.push({ id: b.getAttribute("data-link"), note: "" });
-      closeLinkPicker();
-      renderEdLinks();
-      toast("已关联，可填下方备注 ✓");
+      draftLinks.push(b.getAttribute("data-link"));
+      openEditorRestore();
     });
   });
-  $("lpBack").addEventListener("click", closeLinkPicker);
+  $("lpBack").addEventListener("click", openEditorRestore);
 }
-function closeLinkPicker() {
-  var box = $("linkPicker"); if (box) box.remove();
-  var wrap = $("edWrap"); if (wrap) wrap.classList.remove("hidden");
-}
+function openEditorRestore() { openEditor(editingCard ? Object.assign({}, editingCard) : null); }
 
 function uploadImage(file) {
   if (!file) return;
@@ -1031,24 +937,23 @@ function saveCard() {
   var now = Date.now();
   var card = editingCard || { id: uid(), bookId: curBookId, created: now };
   card.title = title; card.content = content; card.cat = pickedCat;
-  card.images = draftImgs; card.links = draftLinks.slice();
+  card.images = draftImgs; card.links = draftLinks;
   card.pinned = $("edPin").value === "1";
   card.tags = $("edTags").value.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean);
   card.story = $("edStory").value.trim();
   card.updated = now;
-  // 双向关联（备注两边同步）
+  // 双向关联
   card.links.forEach(function (l) {
-    var t = cardById(l.id);
+    var t = cardById(l);
     if (t) {
-      setLink(t, card.id, l.note || "");
+      t.links = t.links || [];
+      if (t.links.indexOf(card.id) < 0) t.links.push(card.id);
       t.updated = t.updated || now;
     }
   });
   state.cards.forEach(function (c) {
-    if (c.id === card.id) return;
-    var back = card.links.some(function (l) { return l.id === c.id; });
-    var fwd = (c.links || []).some(function (l) { return linkId(l) === card.id; });
-    if (fwd && !back) removeLink(c, card.id);
+    if (c.links && c.links.indexOf(card.id) >= 0 && card.links.indexOf(c.id) < 0)
+      c.links = c.links.filter(function (l) { return l !== card.id; });
   });
   if (!editingCard) {
     state.cards.push(card);
@@ -1071,13 +976,10 @@ function openDetail(id) {
     return '<img class="img-big" src="' + esc(u) + '">';
   }).join("");
   var links = (c.links || []).map(function (l) {
-    var t = cardById(linkId(l)); if (!t) return "";
+    var t = cardById(l); if (!t) return "";
     var tm = catMeta(t.cat);
-    var note = linkNote(l) || pairNote(c, t);
     return '<div class="d-link" data-go="' + t.id + '"><span class="dot" style="background:' + tm.color + '"></span>' +
-      "<b>" + tm.name + "</b> " + esc(t.title || "无标题") +
-      (note ? '<span class="d-note">💬 ' + esc(note) + "</span>" : "") +
-      '<span class="go">查看 ›</span></div>';
+      "<b>" + tm.name + "</b> " + esc(t.title || "无标题") + '<span class="go">查看 ›</span></div>';
   }).join("");
   s.innerHTML = '<div class="grab"></div>' +
     '<span class="d-cat" style="background:' + m.color + '">' + m.em + " " + m.name + "</span>" +
@@ -1106,7 +1008,9 @@ function openDetail(id) {
   $("dDel").addEventListener("click", function () {
     if (!confirm("确定删除这张卡片？")) return;
     var cid = c.id;
-    state.cards.forEach(function (x) { removeLink(x, cid); });
+    state.cards.forEach(function (x) {
+      if (x.links) x.links = x.links.filter(function (l) { return l !== cid; });
+    });
     state.cards = state.cards.filter(function (x) { return x.id !== cid; });
     saveState(); closeSheet(); renderAll(); toast("已删除");
   });
@@ -1122,13 +1026,9 @@ function openMenu() {
     '<button class="menu-item" id="mImport"><span class="mi-ic">📥</span><span>导入数据包<small>选择另一台设备导出的文件，自动合并</small></span></button>' +
     '<button class="menu-item" id="mBackup"><span class="mi-ic">📦</span><span>导出备份<small>下载包含全部卡片和图片的 zip</small></span></button>' +
     "</div>" +
-    '<div class="ver-line" id="verLine"></div>' +
     '<div class="token-box hidden" id="tokenBox"></div>' +
     '<div class="sheet-ops"><button class="btn-ghost" id="mClose">关闭</button></div>';
   s.classList.remove("hidden"); $("sheetBackdrop").classList.remove("hidden");
-  var vl = $("verLine");
-  if (vl) vl.textContent = "小说笔记工作台 " + (typeof APP_VERSION !== "undefined" ? APP_VERSION : "") +
-    (typeof APP_DATE !== "undefined" ? " · 发布 " + APP_DATE : "");
   $("mClose").addEventListener("click", closeSheet);
   $("mBackup").addEventListener("click", exportBackup);
   $("mToken").addEventListener("click", exportBackup);
@@ -1249,76 +1149,6 @@ $("btnView").addEventListener("click", function () {
 document.addEventListener("keydown", function (e) {
   if (e.key === "Escape") closeSheet();
 });
-
-/* ============ 弹层：居中 + 可拖动（仅电脑端） ============ */
-(function sheetDrag() {
-  var el = $("sheet");
-  var desktop = function () { return window.matchMedia("(min-width:760px)").matches; };
-  var dragging = false, sx = 0, sy = 0, ox = 0, oy = 0, moved = false, lastTap = 0;
-
-  function reset() {   // 回到默认居中
-    el.style.left = ""; el.style.top = ""; el.style.transform = ""; el.style.bottom = "";
-    try { sessionStorage.removeItem("nn_sheet_pos"); } catch (e) {}
-  }
-  function isGrip(t) {
-    return t && (t.classList.contains("grab") || t.tagName === "H3");
-  }
-  function applyPos(x, y) {
-    var r = el.getBoundingClientRect();
-    var maxX = window.innerWidth - Math.min(r.width, 120) ;
-    var maxY = window.innerHeight - 40;
-    x = Math.max(-r.width + 120, Math.min(x, maxX));
-    y = Math.max(0, Math.min(y, maxY));
-    el.style.bottom = "auto";
-    el.style.transform = "none";
-    el.style.left = x + "px";
-    el.style.top = y + "px";
-    try { sessionStorage.setItem("nn_sheet_pos", JSON.stringify({ x: x, y: y })); } catch (e) {}
-  }
-  el.addEventListener("pointerdown", function (e) {
-    if (!desktop() || e.button !== 0) return;
-    if (!isGrip(e.target)) return;
-    // 自己判定双击（回正），因为 preventDefault 会屏蔽原生 dblclick
-    var now = Date.now();
-    if (now - lastTap < 420) {
-      lastTap = 0; reset(); toast("已回到屏幕中间"); dragging = false;
-      el.classList.remove("dragging");
-      e.preventDefault(); return;
-    }
-    lastTap = now;
-    var r = el.getBoundingClientRect();
-    dragging = true; moved = false;
-    sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top;
-    el.classList.add("dragging");
-    try { el.setPointerCapture(e.pointerId); } catch (err) {}
-    e.preventDefault();
-  });
-  el.addEventListener("pointermove", function (e) {
-    if (!dragging) return;
-    var dx = e.clientX - sx, dy = e.clientY - sy;
-    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
-    applyPos(ox + dx, oy + dy);
-  });
-  function endDrag() {
-    if (!dragging) return;
-    dragging = false;
-    el.classList.remove("dragging");
-  }
-  el.addEventListener("pointerup", endDrag);
-  el.addEventListener("pointercancel", endDrag);
-  // 每次弹层出现：电脑端恢复上次位置（没有就居中）
-  new MutationObserver(function () {
-    if (el.classList.contains("hidden") || dragging) return;
-    if (!desktop()) { el.style.left = ""; el.style.top = ""; el.style.transform = ""; el.style.bottom = ""; return; }
-    var pos = null;
-    try { pos = JSON.parse(sessionStorage.getItem("nn_sheet_pos") || "null"); } catch (e) {}
-    if (pos && typeof pos.x === "number") {
-      el.style.bottom = "auto"; el.style.transform = "none";
-      el.style.left = pos.x + "px"; el.style.top = pos.y + "px";
-    } else reset();
-  }).observe(el, { attributes: true, attributeFilter: ["class"] });
-  window.addEventListener("resize", function () { if (!desktop()) reset(); });
-})();
 
 /* ============ 启动 ============ */
 loadState();
